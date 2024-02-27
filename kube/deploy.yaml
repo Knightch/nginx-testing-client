@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: client
+  name: client
+  namespace: nginxTest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+      annotations:
+        instrumentation.opentelemetry.io/inject-java: "true"
+    spec:
+      containers:
+        - name: client
+          image: local.eefa.io/ss-eefa/client
+          ports:
+            - containerPort: 8080
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: client
+  namespace: nginxTest
+  labels:
+    app: client
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: client
+  type: LoadBalancer
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: client
+  namespace: nginxTest
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - local.eefa.io
+      secretName: local.eefa.io-ingress-tls
+  rules:
+    - host: local.eefa.io
+      http:
+        paths:
+          - path: /client(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: client
+                port:
+                  number: 8080

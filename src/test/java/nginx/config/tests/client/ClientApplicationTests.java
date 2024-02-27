@@ -1,4 +1,4 @@
-package nginxTraficTest.com.client;
+package nginx.config.tests.client;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
